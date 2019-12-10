@@ -92,19 +92,35 @@ public class SocketControl : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        _server = new ServerThread();
-        _client = new ClientThread();
-
-        
-        _server.Start();
-        _client.Start();
-        Debug.Log("starting thread");
         
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        if(Input.GetKeyDown(KeyCode.S))
+        {
+            StartCoroutine("RunServer");
+        }
+        if(Input.GetKeyDown(KeyCode.C))
+        {
+            StartCoroutine("RunClient");
+        }
+    }
+
+    IEnumerator RunClient()
+    {
+        UnityEngine.Debug.Log("starting client thread");
+        _client = new ClientThread();
+        _client.Start();
+        yield return null;
+    }
+
+    IEnumerator RunServer()
+    {
+        UnityEngine.Debug.Log("starting server thread");
+        _server = new ServerThread();
+        _server.Start();
+        yield return null;
     }
 }
