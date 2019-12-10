@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System;
 using System.Text;
+using System;
 using System.Threading;
 using System.Collections.Generic;
 using UnityEngine;
@@ -167,7 +168,7 @@ public class ServerThread : ThreadedJob
         // bind the listening socket to the port
         int port = 9999;
         int backlog = 10;
-        IPEndPoint ep = new IPEndPoint(IPAddress.Any, port);
+        IPEndPoint ep = new IPEndPoint(IPAddress.Broadcast, port);
         listenSocket.Bind(ep);
         Debug.Log("binded");
 
@@ -238,14 +239,64 @@ public class ClientThread : ThreadedJob
 
     protected override void ThreadFunction()
     {
+        //StartClient();
 
+       
         IPAddress serverAddress = ClientSocket();
 
-        if(serverAddress != IPAddress.Parse("0.0.0.0"))
+        if (serverAddress != IPAddress.Parse("0.0.0.0"))
         {
-            ConnectToServer(serverAddress);
+            //ConnectToServer(serverAddress);
+            TCPClient(serverAddress);
         }
 
+    }
+
+    void TCPClient(IPAddress servAddr)
+    {
+        Debug.Log("outside try");
+        try
+        {
+            Debug.Log("about to create client");
+            // Create a TcpClient.
+            // Note, for this client to work you need to have a TcpServer 
+            // connected to the same address as specified by the server, port
+            // combination.
+            TcpClient client = new TcpClient(servAddr.ToString(), 9999);
+            Debug.Log("created client");
+            isConnected = true;
+            while (isConnected)
+            {
+                // Translate the passed message into ASCII and store it as a Byte array.
+                Byte[] data = System.Text.Encoding.ASCII.GetBytes("nah");
+
+                // Get a client stream for reading and writing.
+                //  Stream stream = client.GetStream();
+
+                NetworkStream stream = client.GetStream();
+
+                // Send the message to the connected TcpServer. 
+                stream.Write(data, 0, data.Length);
+
+                Debug.Log("Sent message");
+                //stream.Close();
+
+                Debug.Log("going to sleep");
+                Thread.Sleep(1000);
+
+            }
+
+            //close the client
+            client.Close();
+        }
+        catch (ArgumentNullException e)
+        {
+            Console.WriteLine("ArgumentNullException: {0}", e);
+        }
+        catch (SocketException e)
+        {
+            Console.WriteLine("SocketException: {0}", e);
+        }
     }
 
     void ConnectToServer(IPAddress servAddr)
@@ -263,8 +314,11 @@ public class ClientThread : ThreadedJob
             string msg = "ok";
             byte[] bytes = new byte[256];
             bytes = Encoding.UTF8.GetBytes(msg.ToCharArray());
+            Debug.Log("about to send");
             s.Send(bytes);
+            Debug.Log("sent; about to sleep");
             Thread.Sleep(2000);
+            Debug.Log("back");
         }
 
         s.Close();
@@ -273,6 +327,69 @@ public class ClientThread : ThreadedJob
 
 
     }
+
+    public static void StartClient()
+    {
+        // Data buffer for incoming data.  
+        byte[] bytes = new byte[1024];
+
+        // Connect to a remote device.  
+        try
+        {
+            // Establish the remote endpoint for the socket.  
+            // This example uses port 11000 on the local computer.  
+            IPHostEntry ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
+            IPAddress ipAddress = ipHostInfo.AddressList[1];
+            IPEndPoint remoteEP = new IPEndPoint(IPAddress.Parse("192.168.0.102"), 9999);
+
+            // Create a TCP/IP  socket.  
+            Socket sender = new Socket(ipAddress.AddressFamily,
+                SocketType.Stream, ProtocolType.Tcp);
+
+            // Connect the socket to the remote endpoint. Catch any errors.  
+            try
+            {
+                sender.Connect(remoteEP);
+
+               Debug.Log("Socket connected to " +
+                    sender.RemoteEndPoint.ToString());
+
+                // Encode the data string into a byte array.  
+                byte[] msg = Encoding.ASCII.GetBytes("This is a test<EOF>");
+
+                // Send the data through the socket.  
+                int bytesSent = sender.Send(msg);
+                Debug.Log("sent byte count " + bytesSent.ToString());
+                // Receive the response from the remote device.  
+                int bytesRec = sender.Receive(bytes);
+                Debug.Log("Echoed test = " +
+                    Encoding.ASCII.GetString(bytes, 0, bytesRec));
+
+                // Release the socket.  
+                sender.Shutdown(SocketShutdown.Both);
+                sender.Close();
+
+            }
+            catch (ArgumentNullException ane)
+            {
+                Debug.Log("ArgumentNullException : " + ane.ToString());
+            }
+            catch (SocketException se)
+            {
+               Debug.Log("SocketException : "+ se.ToString());
+            }
+            catch (Exception e)
+            {
+                Debug.Log("Unexpected exception : " + e.ToString());
+            }
+
+        }
+        catch (Exception e)
+        {
+            Debug.Log(e.ToString());
+        }
+    }
+
 
     protected override void OnFinished()
     {
@@ -346,5 +463,18 @@ public class SocketControl : MonoBehaviour
         _server = new ServerThread();
         _server.Start();
         yield return null;
+    }
+
+    private void OnApplicationQuit()
+    {
+        if(_client!=null)
+        {
+            _client.Abort();
+        }
+
+        if(_server!=null)
+        {
+            _server.Abort();
+        }
     }
 }
