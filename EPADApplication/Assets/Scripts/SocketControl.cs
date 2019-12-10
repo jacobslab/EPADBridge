@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -45,7 +46,14 @@ public class ServerThread : ThreadedJob
         Debug.Log("about to accept");
         listenSocket.Accept();
         SocketAsyncEventArgs e = new SocketAsyncEventArgs();
-        listenSocket.ReceiveAsync(e);
+
+        byte[] bytes = new byte[256];
+        int byteCount  = listenSocket.Receive(bytes,0,listenSocket.Available, SocketFlags.None);
+
+        if(byteCount > 0)
+        {
+            Debug.Log(Encoding.UTF8.GetString(bytes));
+        }
 
     }
 
@@ -86,6 +94,8 @@ public class ServerThread : ThreadedJob
 
 public class ClientThread : ThreadedJob
 {
+
+    private bool isConnected = false;
     public ClientThread()
     {
 
@@ -111,12 +121,27 @@ public class ClientThread : ThreadedJob
          ProtocolType.Tcp);
         s.Connect(servAddr,9999);
         Debug.Log("connected");
+        isConnected = true;
+
+        while(isConnected)
+        {
+            string msg = "ok";
+            byte[] bytes = new byte[256];
+            bytes = Encoding.UTF8.GetBytes(msg.ToCharArray());
+            s.Send(bytes);
+            Thread.Sleep(2000);
+        }
+
+        s.Close();
+
+
 
 
     }
 
     protected override void OnFinished()
     {
+        isConnected = false;
     }
 
     IPAddress ClientSocket()
@@ -141,6 +166,11 @@ public class ClientThread : ThreadedJob
 
         return targetAddr;
 
+    }
+
+    public virtual void close()
+    {
+        isConnected = false;
     }
 }
 
