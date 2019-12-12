@@ -3,12 +3,12 @@ using System.Net;
 using System.Net.Sockets;
 using System;
 using System.Text;
-using System;
 using System.Threading;
 using System.Collections.Generic;
 using UnityEngine;
 
 
+//this will be the actual purpose of the application
 public class ServerThread : ThreadedJob
 {
     private bool isConnected = false;
@@ -29,12 +29,14 @@ public class ServerThread : ThreadedJob
         TcpListener server = null;
         try
         {
-            // Set the TcpListener on port 13000.
-            Int32 port = 9999;
-            IPAddress localAddr = IPAddress.Parse("192.168.0.102");
+            // Set the TcpListener on specified port.
+            Int32 port = 9998;
+            IPHostEntry ipHostInfo = Dns.Resolve(Dns.GetHostName());
+            Debug.Log("iphost ipv4 " + ipHostInfo.AddressList[0].ToString());
+            //IPAddress localAddr = IPAddress.Parse("192.168.0.102");
 
             // TcpListener server = new TcpListener(port);
-            server = new TcpListener(localAddr, port);
+            server = new TcpListener(ipHostInfo.AddressList[0], port);
 
             // Start listening for client requests.
             server.Start();
@@ -67,14 +69,20 @@ public class ServerThread : ThreadedJob
                     data = System.Text.Encoding.ASCII.GetString(bytes, 0, i);
                     Debug.Log("Received: " + data);
 
+                    string[] resultArr = new string[2];
+                    resultArr = data.Split('\t');
+
+                    EPADApplication.Instance.timeSyncLog.LogIPADSyncTime(resultArr);
+                    EPADApplication.Instance.BeginClockSync(resultArr);
+
                     // Process the data sent by the client.
-                    data = data.ToUpper();
+                    //data = data.ToUpper();
 
-                    byte[] msg = System.Text.Encoding.ASCII.GetBytes(data);
+                    //byte[] msg = System.Text.Encoding.ASCII.GetBytes(data);
 
-                    // Send back a response.
-                    stream.Write(msg, 0, msg.Length);
-                    Debug.Log("Sent: " + data);
+                    //// Send back a response.
+                    //stream.Write(msg, 0, msg.Length);
+                    //Debug.Log("Sent: " + data);
                 }
 
                 // Shutdown and end connection
@@ -207,9 +215,18 @@ public class ServerThread : ThreadedJob
 
             UnityEngine.Debug.Log("Received " + ClientRequest + " from " + ClientEp.Address.ToString() + " sending response");
             Server.Send(ResponseData, ResponseData.Length, ClientEp);
-            if (ClientRequest == "!")
+            string[] clientData = ClientRequest.Split('\t');
+            for(int i=0;i<clientData.Length;i++)
             {
+                Debug.Log("client data  " + i.ToString() + ": " + clientData[i]);
+            }
+            if (clientData[0].Contains("SUBJ"))
+            {
+                Debug.Log("found SUBJ");
+                Configuration.subjectName = clientData[1];
+                EPADApplication.Instance.PrepareLogging();
                 isConnected = true;
+                EPADApplication.Instance.UpdateIPADConnectionStatus(isConnected);
                 Debug.Log("established connection");
             }
         }
@@ -228,6 +245,8 @@ public class ServerThread : ThreadedJob
 
 }
 
+
+//for testing purposes only
 public class ClientThread : ThreadedJob
 {
 
@@ -262,6 +281,7 @@ public class ClientThread : ThreadedJob
             // Note, for this client to work you need to have a TcpServer 
             // connected to the same address as specified by the server, port
             // combination.
+            Debug.Log("server address " + servAddr.ToString());
             TcpClient client = new TcpClient(servAddr.ToString(), 9999);
             Debug.Log("created client");
             isConnected = true;
@@ -433,20 +453,21 @@ public class SocketControl : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        //run on start
+        StartCoroutine("RunServer");
     }
 
     // Update is called once per frame
     void Update()
     {
-        if(Input.GetKeyDown(KeyCode.S))
-        {
-            StartCoroutine("RunServer");
-        }
-        if(Input.GetKeyDown(KeyCode.C))
-        {
-            StartCoroutine("RunClient");
-        }
+        //if(Input.GetKeyDown(KeyCode.S))
+        //{
+        //    StartCoroutine("RunServer");
+        //}
+        //if(Input.GetKeyDown(KeyCode.C))
+        //{
+        //    StartCoroutine("RunClient");
+        //}
     }
 
     IEnumerator RunClient()
