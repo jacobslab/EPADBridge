@@ -125,7 +125,6 @@ public class ListenerServer:ThreadedJob
 public class NeuralDeviceConnectivity : MonoBehaviour
 {
     ListenerServer _listenerServer;
-    public Text debugText;
 
     // Start is called before the first frame update
     void Start()
