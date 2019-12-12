@@ -7,11 +7,99 @@ using System.Threading;
 using System.Collections.Generic;
 using UnityEngine;
 
+public class NeuralConnectionThread: ThreadedJob
+{
+    public bool isConnected = false;
+    public IPAddress ipAddress;
+    public NeuralConnectionThread()
+    {
+        isConnected = true;
+
+    }
+
+
+    void TCPClient(IPAddress servAddr)
+    {
+        Debug.Log("outside try");
+        try
+        {
+            Debug.Log("about to create client");
+            // Create a TcpClient.
+            // Note, for this client to work you need to have a TcpServer 
+            // connected to the same address as specified by the server, port
+            // combination.
+            Debug.Log("server address " + servAddr.ToString());
+            try
+            {
+                TcpClient client = new TcpClient(servAddr.ToString(), 9997);
+
+                Debug.Log("created client");
+                isConnected = true;
+                Byte[] data = new byte[256];
+                NetworkStream stream;
+                while (isConnected)
+                {
+                    //convert the last message
+                    data = System.Text.Encoding.ASCII.GetBytes(Configuration.neuralDeviceConnection.ToString());
+
+                    // Get a client stream for reading and writing.
+                    //  Stream stream = client.GetStream();
+
+                    stream = client.GetStream();
+
+                    //    }
+                    Debug.Log("writing into the stream");
+                    // Send the message to the connected TcpServer. 
+                    stream.Write(data, 0, data.Length);
+
+                    Debug.Log("Sent message");
+                    //stream.Close();
+                    Thread.Sleep(100);
+                }
+
+                //close the client
+                client.Close();
+            }
+            catch (SocketException e)
+            {
+                Debug.Log("got socket exception " + e.Message);
+                Debug.Log(e.SocketErrorCode.ToString());
+                Debug.Log("attempting to run again");
+                TCPClient(ipAddress);
+            }
+        }
+        catch (ArgumentNullException e)
+        {
+            Console.WriteLine("ArgumentNullException: {0}", e);
+        }
+        catch (SocketException e)
+        {
+            Console.WriteLine("SocketException: {0}", e);
+        }
+    }
+
+    protected override void ThreadFunction()
+    {
+        TCPClient(ipAddress);
+    }
+
+    protected override void OnFinished()
+    {
+
+    }
+
+    public virtual void close()
+    {
+        isConnected = false;
+    }
+}
 
 //this will be the actual purpose of the application
 public class ServerThread : ThreadedJob
 {
     private bool isConnected = false;
+    public IPAddress ipadAddress;
+    public NeuralConnectionThread neuralConnection;
     public ServerThread()
     {
     }
@@ -21,8 +109,12 @@ public class ServerThread : ThreadedJob
         //StartListening();
         ServerSocket();
         //ListeningServer();
+        neuralConnection = new NeuralConnectionThread();
+        neuralConnection.ipAddress = ipadAddress;
+        neuralConnection.Start();
         TCPListener();
     }
+
 
     void TCPListener()
     {
@@ -212,7 +304,6 @@ public class ServerThread : ThreadedJob
             var ClientEp = new IPEndPoint(IPAddress.Any, 0);
             var ClientRequestData = Server.Receive(ref ClientEp);
             var ClientRequest = Encoding.ASCII.GetString(ClientRequestData);
-
             UnityEngine.Debug.Log("Received " + ClientRequest + " from " + ClientEp.Address.ToString() + " sending response");
             Server.Send(ResponseData, ResponseData.Length, ClientEp);
             string[] clientData = ClientRequest.Split('\t');
@@ -222,7 +313,8 @@ public class ServerThread : ThreadedJob
             }
             if (clientData[0].Contains("SUBJ"))
             {
-                Debug.Log("found SUBJ");
+                ipadAddress = ClientEp.Address;
+                    Debug.Log("found SUBJ");
                 Configuration.subjectName = clientData[1];
                 EPADApplication.Instance.PrepareLogging();
                 isConnected = true;
@@ -240,6 +332,8 @@ public class ServerThread : ThreadedJob
     public virtual void close()
     {
         isConnected = false;
+        neuralConnection.close();
+        
     }
 
 
@@ -283,7 +377,7 @@ public class ClientThread : ThreadedJob
             // combination.
             Debug.Log("server address " + servAddr.ToString());
             TcpClient client = new TcpClient(servAddr.ToString(), 10001);
-            Debug.Log("created client");
+            Debug.Log("created FAKE client");
             isConnected = true;
             while (isConnected)
             {
@@ -466,10 +560,10 @@ public class SocketControl : MonoBehaviour
         //{
         //    StartCoroutine("RunServer");
         //}
-        //if (Input.GetKeyDown(KeyCode.C))
-        //{
-        //    StartCoroutine("RunClient");
-        //}
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            StartCoroutine("RunClient");
+        }
     }
 
     IEnumerator RunClient()
@@ -492,11 +586,13 @@ public class SocketControl : MonoBehaviour
     {
         if(_client!=null)
         {
+            _client.close();
             _client.Abort();
         }
 
         if(_server!=null)
         {
+            _server.close();
             _server.Abort();
         }
     }
