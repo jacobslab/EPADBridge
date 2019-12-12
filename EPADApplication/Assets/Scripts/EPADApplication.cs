@@ -10,6 +10,8 @@ public class EPADApplication : MonoBehaviour
     public Logger_Threading subjectLog;
     public ClockSynchronization clockSync;
 
+    public Text debugText;
+
 
     //ui
     public RawImage ipadConnectionIndicator;
@@ -62,12 +64,15 @@ public class EPADApplication : MonoBehaviour
     public void UpdateIPADConnectionStatus(bool isConnected)
     {
         Configuration.ipadConnection = isConnected;
+
+        debugText.text = "iPad: " + isConnected.ToString();
         ipadConnectionIndicator.color = (isConnected ? Color.green : Color.red);
     }
 
     public void UpdateNeuralConnectionStatus(bool isConnected)
     {
         Configuration.neuralDeviceConnection = isConnected;
+        debugText.text = "Device: " + isConnected.ToString();
         neuralConnectionIndicator.color = (isConnected ? Color.green : Color.red);
     }
 

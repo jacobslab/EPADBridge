@@ -5,11 +5,13 @@ using System.Net.Sockets;
 using System.Threading;
 using System;
 using UnityEngine;
-
+using UnityEngine.UI;
 public class ListenerServer:ThreadedJob
 {
 
     public bool isRunning = false;
+    public bool neuralDeviceConnected = false;
+    public bool connectionStatusUpdated = false;
     public ListenerServer()
     {
         isRunning = true;
@@ -30,11 +32,14 @@ public class ListenerServer:ThreadedJob
         {
             // Set the TcpListener on specified port.
             Int32 port = 10001; 
-            IPHostEntry ipHostInfo = Dns.Resolve(Dns.GetHostName()); //gets local IP address
+            //IPHostEntry ipHostInfo = Dns.Resolve(Dns.GetHostName()); //gets local IP address
 
-            server = new TcpListener(ipHostInfo.AddressList[0], port);
-            Debug.Log("iphost info " + ipHostInfo.AddressList[0]);
-
+            IPAddress localHost = IPAddress.Parse("127.0.0.1");
+            server = new TcpListener(localHost, port);
+            //server = new TcpListener(ipHostInfo.AddressList[0], port);
+            //Debug.Log("iphost info " + ipHostInfo.AddressList[0]);
+            //if(EPADApplication.Instance!=null)
+            //    EPADApplication.Instance.debugText.text = "Connecting...";
             // Start listening for client requests.
             server.Start();
 
@@ -45,12 +50,14 @@ public class ListenerServer:ThreadedJob
             // Enter the listening loop.
             while (isRunning)
             {
-                Debug.Log("Waiting for a connection... ");
+                Debug.Log("Waiting for a LOCAL connection... ");
 
                 // Perform a blocking call to accept requests.
                 // You could also user server.AcceptSocket() here.
                 TcpClient client = server.AcceptTcpClient();
                 Debug.Log("Connected!");
+                //if (EPADApplication.Instance != null)
+                //    EPADApplication.Instance.debugText.text = "Connected";
                 data = null;
 
                 // Get a stream object for reading and writing
@@ -64,14 +71,21 @@ public class ListenerServer:ThreadedJob
                     // Translate data bytes to a ASCII string.
                     data = System.Text.Encoding.ASCII.GetString(bytes, 0, i);
                     Debug.Log("Received: " + data);
+                    //EPADApplication.Instance.debugText.text= "Received: " + data + "\n";
+                    data = data.ToLower();
 
+                    bool connectionStatus = bool.TryParse(data, out bool res);
+                    Debug.Log("got bool: " + connectionStatus.ToString());
+                    if (connectionStatus)
+                    {
+                        Debug.Log("inside res");
 
+                        // DO SOMETHING WITH THE DATA RECIEVED BY THE SOCKET ON THIS PORT
 
-                    // DO SOMETHING WITH THE DATA RECIEVED BY THE SOCKET ON THIS PORT
+                        //fire the "DeviceStatusChanged" function by passing a true/false boolean of the device connection status
 
-                    //fire the "DeviceStatusChanged" function by passing a true/false boolean of the device connection status
-
-                    //DeviceStatusChanged(true);
+                        DeviceStatusChanged(res);
+                    }
 
                 }
 
@@ -92,7 +106,9 @@ public class ListenerServer:ThreadedJob
 
     public void DeviceStatusChanged(bool deviceConnectionStatus)
     {
-        EPADApplication.Instance.UpdateNeuralConnectionStatus(deviceConnectionStatus); //updates the UI o
+        neuralDeviceConnected = deviceConnectionStatus;
+        connectionStatusUpdated = true;
+        //EPADApplication.Instance.UpdateNeuralConnectionStatus(deviceConnectionStatus); //updates the UI o
     }
 
     protected override void OnFinished()
@@ -109,6 +125,7 @@ public class ListenerServer:ThreadedJob
 public class NeuralDeviceConnectivity : MonoBehaviour
 {
     ListenerServer _listenerServer;
+    public Text debugText;
 
     // Start is called before the first frame update
     void Start()
@@ -121,7 +138,14 @@ public class NeuralDeviceConnectivity : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        if (_listenerServer != null)
+        {
+            if (_listenerServer.connectionStatusUpdated)
+            {
+                EPADApplication.Instance.UpdateNeuralConnectionStatus(_listenerServer.neuralDeviceConnected);
+                _listenerServer.connectionStatusUpdated = false;
+            }
+        }
     }
 
     private void OnApplicationQuit()

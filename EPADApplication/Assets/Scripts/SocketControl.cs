@@ -261,13 +261,13 @@ public class ClientThread : ThreadedJob
         //StartClient();
 
        
-        IPAddress serverAddress = ClientSocket();
+        //IPAddress serverAddress = ClientSocket();
 
-        if (serverAddress != IPAddress.Parse("0.0.0.0"))
-        {
+        //if (serverAddress != IPAddress.Parse("0.0.0.0"))
+        //{
             //ConnectToServer(serverAddress);
-            TCPClient(serverAddress);
-        }
+            TCPClient(IPAddress.Parse("127.0.0.1"));
+        //}
 
     }
 
@@ -282,13 +282,13 @@ public class ClientThread : ThreadedJob
             // connected to the same address as specified by the server, port
             // combination.
             Debug.Log("server address " + servAddr.ToString());
-            TcpClient client = new TcpClient(servAddr.ToString(), 9999);
+            TcpClient client = new TcpClient(servAddr.ToString(), 10001);
             Debug.Log("created client");
             isConnected = true;
             while (isConnected)
             {
                 // Translate the passed message into ASCII and store it as a Byte array.
-                Byte[] data = System.Text.Encoding.ASCII.GetBytes("nah");
+                Byte[] data = System.Text.Encoding.ASCII.GetBytes("true");
 
                 // Get a client stream for reading and writing.
                 //  Stream stream = client.GetStream();
@@ -359,8 +359,10 @@ public class ClientThread : ThreadedJob
             // Establish the remote endpoint for the socket.  
             // This example uses port 11000 on the local computer.  
             IPHostEntry ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
-            IPAddress ipAddress = ipHostInfo.AddressList[1];
-            IPEndPoint remoteEP = new IPEndPoint(IPAddress.Parse("192.168.0.102"), 9999);
+            //IPAddress ipAddress = ipHostInfo.AddressList[1];
+            IPAddress ipAddress = IPAddress.Parse("127.0.0.1:1001");
+
+            IPEndPoint remoteEP = new IPEndPoint(IPAddress.Parse("127.0.0.1"),10001);
 
             // Create a TCP/IP  socket.  
             Socket sender = new Socket(ipAddress.AddressFamily,
@@ -423,7 +425,7 @@ public class ClientThread : ThreadedJob
         var ServerEp = new IPEndPoint(IPAddress.Any, 0);
 
         Client.EnableBroadcast = true;
-        Client.Send(RequestData, RequestData.Length, new IPEndPoint(IPAddress.Broadcast, 9999));
+        Client.Send(RequestData, RequestData.Length, new IPEndPoint(IPAddress.Broadcast, 10001));
         Debug.Log("waiting to receive as client");
         //var ServerResponseData = Client.Receive(ref ServerEp);
         //var ServerResponse = Encoding.ASCII.GetString(ServerResponseData);
@@ -464,7 +466,7 @@ public class SocketControl : MonoBehaviour
         //{
         //    StartCoroutine("RunServer");
         //}
-        //if(Input.GetKeyDown(KeyCode.C))
+        //if (Input.GetKeyDown(KeyCode.C))
         //{
         //    StartCoroutine("RunClient");
         //}
