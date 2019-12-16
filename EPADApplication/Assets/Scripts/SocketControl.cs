@@ -94,12 +94,71 @@ public class NeuralConnectionThread: ThreadedJob
     }
 }
 
+public class DiscoveryThread : ThreadedJob
+{
+    public bool isConnected = false;
+    public IPAddress ipadAddress;
+    public DiscoveryThread()
+    {
+
+    }
+
+    protected override void ThreadFunction()
+    {
+        ServerSocket();
+    }
+
+    protected override void OnFinished()
+    {
+
+    }
+
+    void ServerSocket()
+    {
+        var Server = new UdpClient(9999);
+        var ResponseData = Encoding.ASCII.GetBytes("Connected");
+
+        while (!isConnected)
+        {
+            Debug.Log("waiting for client to be found");
+            var ClientEp = new IPEndPoint(IPAddress.Any, 0);
+            var ClientRequestData = Server.Receive(ref ClientEp);
+            var ClientRequest = Encoding.ASCII.GetString(ClientRequestData);
+            UnityEngine.Debug.Log("Received " + ClientRequest + " from " + ClientEp.Address.ToString() + " sending response");
+            Server.Send(ResponseData, ResponseData.Length, ClientEp);
+            string[] clientData = ClientRequest.Split('\t');
+            for (int i = 0; i < clientData.Length; i++)
+            {
+                Debug.Log("client data  " + i.ToString() + ": " + clientData[i]);
+            }
+            if (clientData[0].Contains("SUBJ"))
+            {
+                ipadAddress = ClientEp.Address;
+                Debug.Log("found SUBJ");
+                Configuration.subjectName = clientData[1];
+                EPADApplication.Instance.PrepareLogging();
+                isConnected = true;
+                EPADApplication.Instance.UpdateIPADConnectionStatus(isConnected);
+                Debug.Log("established connection");
+            }
+        }
+        Debug.Log("closing server");
+        Server.Close();
+
+    }
+
+    public virtual void close()
+    {
+        isConnected = false;
+    }
+}
+
 //this will be the actual purpose of the application
 public class ServerThread : ThreadedJob
 {
     private bool isConnected = false;
-    public IPAddress ipadAddress;
-    public NeuralConnectionThread neuralConnection;
+    private DiscoveryThread _discoveryThread;
+    //public NeuralConnectionThread neuralConnection;
     public ServerThread()
     {
     }
@@ -107,11 +166,12 @@ public class ServerThread : ThreadedJob
     protected override void ThreadFunction()
     {
         //StartListening();
-        ServerSocket();
+        _discoveryThread = new DiscoveryThread();
+        _discoveryThread.Start();
         //ListeningServer();
-        neuralConnection = new NeuralConnectionThread();
-        neuralConnection.ipAddress = ipadAddress;
-        neuralConnection.Start();
+        //neuralConnection = new NeuralConnectionThread();
+        //neuralConnection.ipAddress = ipadAddress;
+        //neuralConnection.Start();
         TCPListener();
     }
 
@@ -119,6 +179,7 @@ public class ServerThread : ThreadedJob
     void TCPListener()
     {
         TcpListener server = null;
+        bool shouldReconnect = true; //this will be true unless turned off if we try reconnecting again...
         try
         {
             // Set the TcpListener on specified port.
@@ -138,15 +199,21 @@ public class ServerThread : ThreadedJob
             String data = null;
 
             // Enter the listening loop.
-            while (true)
+            while (shouldReconnect)
             {
                 Debug.Log("Waiting for a connection... ");
-
+                EPADApplication.Instance.UpdateIPADConnectionStatus(false);
                 // Perform a blocking call to accept requests.
                 // You could also user server.AcceptSocket() here.
+                //server.
                 TcpClient client = server.AcceptTcpClient();
                 Debug.Log("Connected!");
 
+                //if connected, we can close the discovery thread
+                _discoveryThread.close();
+
+
+                EPADApplication.Instance.UpdateIPADConnectionStatus(true);
                 data = null;
 
                 // Get a stream object for reading and writing
@@ -184,6 +251,7 @@ public class ServerThread : ThreadedJob
         catch (SocketException e)
         {
            Debug.Log("SocketException: " + e);
+
         }
         finally
         {
@@ -293,46 +361,17 @@ public class ServerThread : ThreadedJob
 
     }
 
-    void ServerSocket()
-    {
-        var Server = new UdpClient(9999);
-        var ResponseData = Encoding.ASCII.GetBytes("Connected");
 
-        while (!isConnected)
-        {
-            Debug.Log("waiting for client to be found");
-            var ClientEp = new IPEndPoint(IPAddress.Any, 0);
-            var ClientRequestData = Server.Receive(ref ClientEp);
-            var ClientRequest = Encoding.ASCII.GetString(ClientRequestData);
-            UnityEngine.Debug.Log("Received " + ClientRequest + " from " + ClientEp.Address.ToString() + " sending response");
-            Server.Send(ResponseData, ResponseData.Length, ClientEp);
-            string[] clientData = ClientRequest.Split('\t');
-            for(int i=0;i<clientData.Length;i++)
-            {
-                Debug.Log("client data  " + i.ToString() + ": " + clientData[i]);
-            }
-            if (clientData[0].Contains("SUBJ"))
-            {
-                ipadAddress = ClientEp.Address;
-                    Debug.Log("found SUBJ");
-                Configuration.subjectName = clientData[1];
-                EPADApplication.Instance.PrepareLogging();
-                isConnected = true;
-                EPADApplication.Instance.UpdateIPADConnectionStatus(isConnected);
-                Debug.Log("established connection");
-            }
-        }
-        Debug.Log("closing server");
-        Server.Close();
-
-    }
 
     
 
     public virtual void close()
     {
+        if(_discoveryThread!=null)
+            _discoveryThread.close();
         isConnected = false;
-        neuralConnection.close();
+        //if(neuralConnection!=null)
+        //    neuralConnection.close();
         
     }
 
@@ -560,10 +599,26 @@ public class SocketControl : MonoBehaviour
         //{
         //    StartCoroutine("RunServer");
         //}
-        if (Input.GetKeyDown(KeyCode.C))
+        //if (Input.GetKeyDown(KeyCode.C))
+        //{
+        //    StartCoroutine("RunClient");
+        //}
+        if(Configuration.shouldSearchAgain)
         {
-            StartCoroutine("RunClient");
+            StartCoroutine("AttemptReconnection");
+
         }
+    }
+
+    IEnumerator AttemptReconnection()
+    {
+        if (_server != null)
+            _server.close();
+
+        yield return new WaitForSeconds(1f);
+        Debug.Log("starting another instance of server thread");
+        yield return StartCoroutine(RunServer());
+        yield return null;
     }
 
     IEnumerator RunClient()

@@ -11,6 +11,8 @@ public class Configuration : MonoBehaviour
     public static string defaultLoggingPath;
     public static string subjectName = "test";
 
+    public static bool shouldSearchAgain = false;
+
     //connection status
     public static bool ipadConnection = false;
     public static bool neuralDeviceConnection = false;
@@ -37,5 +39,10 @@ public class Configuration : MonoBehaviour
         //    neuralDeviceConnection = true;
         //}
         
+    }
+
+    public void SearchAgain()
+    {
+        shouldSearchAgain = true;
     }
 }
