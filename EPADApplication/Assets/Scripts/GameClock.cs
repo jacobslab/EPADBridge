@@ -13,6 +13,7 @@ public class NTPSynchronizer : ThreadedJob
 {
     public bool isRunning = false;
     public bool shouldSyncNTP = false;
+    public bool didUpdateNTP = false;
     public DateTime lastSyncedNTPTime = DateTime.Now;
     public NTPSynchronizer()
     {
@@ -27,6 +28,7 @@ public class NTPSynchronizer : ThreadedJob
             {
                 PrintSomething("about to get network time");
                 lastSyncedNTPTime= GetNetworkTime();
+                didUpdateNTP = true;
                 PrintSomething("about to turn off sync time");
                 shouldSyncNTP = false;
             }
@@ -46,6 +48,7 @@ public class NTPSynchronizer : ThreadedJob
     {
         Debug.Log("querying ntp time");
         shouldSyncNTP = true;
+        didUpdateNTP = false;
     }
 
 

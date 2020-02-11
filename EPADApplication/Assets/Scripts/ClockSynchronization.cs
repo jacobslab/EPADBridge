@@ -21,23 +21,30 @@ public class ClockSynchronization : MonoBehaviour
         //Debug.Log(GameClock.GetClockMilliseconds(GetNetworkTime()) - GameClock.GetClockMilliseconds(DateTime.Now));
     }
 
-    public long[] RunSyncInterval()
+    public IEnumerator RunSyncInterval()
     {
              long[] resultArr = new long[2]; // it will contain NTP time and local time
 
         EPADApplication.Instance.timeSyncLog.LogNTPSyncEvent(true);
         gameClock._ntpSync.QueryNTPTime();
+        yield return new WaitForSeconds(0.1f);
+        while(!gameClock._ntpSync.didUpdateNTP)
+        {
+            yield return 0;
+        }
+
         DateTime currentNTPTime = gameClock._ntpSync.lastSyncedNTPTime;
         EPADApplication.Instance.timeSyncLog.LogNTPSyncEvent(false);
         long ntpTime = GameClock.GetClockMilliseconds(currentNTPTime);
             long localTime = GameClock.GetClockMilliseconds(DateTime.Now);
             long difference = ntpTime - localTime;
-
+        EPADApplication.Instance.debugText.text = "Last timestamp: " + ntpTime.ToString();
         Debug.Log("difference is " + difference.ToString());
         resultArr[0] = ntpTime;
         resultArr[1] = localTime;
-
-        return resultArr;
+        EPADApplication.Instance.timeSyncLog.LogEPADSyncTime(resultArr);
+        yield return null;
+        //return resultArr;
             //NetworkManager.Instance.SendMessageToEPAD(message);
             //TreasureHuntController_ARKit.Instance.trialLog.LogTimeSyncEvent(ntpTime, localTime, difference);
 

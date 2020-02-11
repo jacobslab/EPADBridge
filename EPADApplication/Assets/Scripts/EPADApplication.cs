@@ -65,14 +65,14 @@ public class EPADApplication : MonoBehaviour
     {
         Configuration.ipadConnection = isConnected;
 
-        debugText.text = "iPad: " + isConnected.ToString();
+        //debugText.text = "iPad: " + isConnected.ToString();
         ipadConnectionIndicator.color = (isConnected ? Color.green : Color.red);
     }
 
     public void UpdateNeuralConnectionStatus(bool isConnected)
     {
         Configuration.neuralDeviceConnection = isConnected;
-        debugText.text = "Device: " + isConnected.ToString();
+        //debugText.text = "Device: " + isConnected.ToString();
         neuralConnectionIndicator.color = (isConnected ? Color.green : Color.red);
     }
 
@@ -133,8 +133,8 @@ public class EPADApplication : MonoBehaviour
     public void BeginClockSync(string[] ipadTime)
     {
         long[] epadTimes = new long[2];
-        epadTimes = clockSync.RunSyncInterval();
-        timeSyncLog.LogEPADSyncTime(epadTimes);
+        StartCoroutine(clockSync.RunSyncInterval());
+        //timeSyncLog.LogEPADSyncTime(epadTimes);
 
 
     }

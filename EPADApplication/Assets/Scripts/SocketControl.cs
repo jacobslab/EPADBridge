@@ -185,11 +185,16 @@ public class ServerThread : ThreadedJob
             // Set the TcpListener on specified port.
             Int32 port = 9998;
             IPHostEntry ipHostInfo = Dns.Resolve(Dns.GetHostName());
-            Debug.Log("iphost ipv4 " + ipHostInfo.AddressList[0].ToString());
+            Debug.Log("iphost ipv6 " + ipHostInfo.AddressList[0].ToString());
+            Debug.Log("iphost ipv4 " + ipHostInfo.AddressList[1].ToString());
             //IPAddress localAddr = IPAddress.Parse("192.168.0.102");
 
-            // TcpListener server = new TcpListener(port);
+// TcpListener server = new TcpListener(port);
+#if !UNITY_STANDALONE_OSX
+            server = new TcpListener(ipHostInfo.AddressList[1], port);
+#else
             server = new TcpListener(ipHostInfo.AddressList[0], port);
+#endif
 
             // Start listening for client requests.
             server.Start();
