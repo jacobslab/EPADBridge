@@ -23,11 +23,11 @@ public class TimeSyncLog : LogTrack
 
     public void LogIPADSyncTime(string[] ipadtime)
     {
-        subjectLog.Log(GameClock.SystemTime_Milliseconds, "IPAD_TIME" + separator +  ipadtime[0] + separator + ipadtime[1]);
+        subjectLog.Log(GameClock.SystemTime_Milliseconds, "OCULUS_TIME" + separator +  ipadtime[0] + separator + ipadtime[1]);
     }
     public void LogEPADSyncTime(long[] epadtime)
     {
-        subjectLog.Log(GameClock.SystemTime_Milliseconds, "EPAD_TIME" + separator + epadtime[0].ToString() + separator + epadtime[1].ToString());
+        subjectLog.Log(GameClock.SystemTime_Milliseconds, "MACBOOK_TIME" + separator + epadtime[0].ToString() + separator + epadtime[1].ToString());
     }
 
     public void LogNTPSyncEvent(bool hasStarted)

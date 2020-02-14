@@ -190,14 +190,13 @@ public class ServerThread : ThreadedJob
             //IPAddress localAddr = IPAddress.Parse("192.168.0.102");
 
 // TcpListener server = new TcpListener(port);
-#if !UNITY_STANDALONE_OSX || !UNITY_EDITOR_OSX
-            server = new TcpListener(ipHostInfo.AddressList[1], port);
-#else
             server = new TcpListener(ipHostInfo.AddressList[0], port);
-#endif
+//#endif
 
             // Start listening for client requests.
             server.Start();
+
+            Debug.Log("Started listener on port " + port.ToString());
 
             // Buffer for reading data
             Byte[] bytes = new Byte[256];
