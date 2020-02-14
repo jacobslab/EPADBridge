@@ -190,7 +190,7 @@ public class ServerThread : ThreadedJob
             //IPAddress localAddr = IPAddress.Parse("192.168.0.102");
 
 // TcpListener server = new TcpListener(port);
-#if !UNITY_STANDALONE_OSX
+#if !UNITY_STANDALONE_OSX || !UNITY_EDITOR_OSX
             server = new TcpListener(ipHostInfo.AddressList[1], port);
 #else
             server = new TcpListener(ipHostInfo.AddressList[0], port);
@@ -239,6 +239,8 @@ public class ServerThread : ThreadedJob
                     EPADApplication.Instance.timeSyncLog.LogIPADSyncTime(resultArr);
                     EPADApplication.Instance.BeginClockSync(resultArr);
 
+                    EPADApplication.Instance.BeginSyncboxSync();
+
                     // Process the data sent by the client.
                     //data = data.ToUpper();
 
@@ -250,6 +252,7 @@ public class ServerThread : ThreadedJob
                 }
 
                 // Shutdown and end connection
+                Debug.Log("closing client");
                 client.Close();
             }
         }

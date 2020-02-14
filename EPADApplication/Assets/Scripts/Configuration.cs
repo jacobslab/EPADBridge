@@ -11,6 +11,9 @@ public class Configuration : MonoBehaviour
     public static string defaultLoggingPath;
     public static string subjectName = "test";
 
+    //isSyncbox
+    public static bool isSyncbox = true;
+
     public static bool shouldSearchAgain = false;
 
     //connection status

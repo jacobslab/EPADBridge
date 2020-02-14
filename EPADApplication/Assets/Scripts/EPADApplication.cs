@@ -12,10 +12,14 @@ public class EPADApplication : MonoBehaviour
 
     public Text debugText;
 
+    private bool isConnected = false;
+
 
     //ui
     public RawImage ipadConnectionIndicator;
     public RawImage neuralConnectionIndicator;
+
+    public SyncboxControl syncboxControl;
 
     public TimeSyncLog timeSyncLog;
 
@@ -52,13 +56,15 @@ public class EPADApplication : MonoBehaviour
         // Start is called before the first frame update
         void Start()
     {
-        
+        StartCoroutine(InitLogging());
+        ipadConnectionIndicator.color = Color.red;
     }
 
 
     public void PrepareLogging()
     {
-        StartCoroutine("InitLogging");
+        Debug.Log("preparing logging");
+        isConnected = true;
     }
 
     public void UpdateIPADConnectionStatus(bool isConnected)
@@ -66,7 +72,11 @@ public class EPADApplication : MonoBehaviour
         Configuration.ipadConnection = isConnected;
 
         //debugText.text = "iPad: " + isConnected.ToString();
-        ipadConnectionIndicator.color = (isConnected ? Color.green : Color.red);
+        if (isConnected)
+            Green();
+        else
+            Red();
+        //ipadConnectionIndicator.color = Color.green;
     }
 
     public void UpdateNeuralConnectionStatus(bool isConnected)
@@ -76,9 +86,27 @@ public class EPADApplication : MonoBehaviour
         neuralConnectionIndicator.color = (isConnected ? Color.green : Color.red);
     }
 
+    public void BeginSyncboxSync()
+    {
+        StartCoroutine(syncboxControl.SyncImmediately());
 
+    }
+
+    void Red()
+    {
+        ipadConnectionIndicator.color = Color.red;
+    }
+
+    void Green()
+    {
+        ipadConnectionIndicator.color = Color.green;
+    }
     IEnumerator InitLogging()
     {
+        while(!isConnected)
+        {
+            yield return 0;
+        }
         string subjectDirectory = Configuration.defaultLoggingPath + "/" + Configuration.subjectName + "/";
         UnityEngine.Debug.Log("subj directory is " + subjectDirectory);
         sessionDirectory = subjectDirectory + "session_0" + "/";

@@ -16,6 +16,11 @@ public class TimeSyncLog : LogTrack
         
     }
 
+    public void LogSyncOn(bool isOn, long time)
+    {
+        subjectLog.Log(GameClock.SystemTime_Milliseconds, "SYNC_" + (isOn ? "ON" : "OFF") + separator + time.ToString());
+    }
+
     public void LogIPADSyncTime(string[] ipadtime)
     {
         subjectLog.Log(GameClock.SystemTime_Milliseconds, "IPAD_TIME" + separator +  ipadtime[0] + separator + ipadtime[1]);
